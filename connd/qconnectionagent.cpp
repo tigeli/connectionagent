@@ -58,7 +58,6 @@ QConnectionAgent::QConnectionAgent(QObject *parent) :
     ua(0),
     netman(NetworkManagerFactory::createInstance()),
     currentNetworkState(QString()),
-    askForRoaming(false),
     isEthernet(false),
     connmanAvailable(false),
     oContext(0),
@@ -84,7 +83,6 @@ QConnectionAgent::QConnectionAgent(QObject *parent) :
     }
 
     connect(this,SIGNAL(configurationNeeded(QString)),this,SLOT(openConnectionDialog(QString)));
-    askForRoaming = askRoaming();
 
     connect(netman,SIGNAL(servicesListChanged(QStringList)),this,SLOT(servicesListChanged(QStringList)));
     connect(netman,SIGNAL(stateChanged(QString)),this,SLOT(networkStateChanged(QString)));
@@ -422,25 +420,6 @@ void QConnectionAgent::networkStateChanged(const QString &state)
     }
 }
 
-bool QConnectionAgent::askRoaming() const
-{
-    qDebug() << Q_FUNC_INFO;
-    bool roaming;
-    QSettings confFile;
-    confFile.beginGroup("Connectionagent");
-    roaming = confFile.value("askForRoaming").toBool();
-    return roaming;
-}
-
-void QConnectionAgent::setAskRoaming(bool value)
-{
-    qDebug() << Q_FUNC_INFO;
-    QSettings confFile;
-    confFile.beginGroup("Connectionagent");
-    confFile.setValue("askForRoaming",value);
-    askForRoaming = value;
-}
-
 void QConnectionAgent::connmanAvailabilityChanged(bool b)
 {
     qDebug() << Q_FUNC_INFO;
@@ -660,7 +639,7 @@ void QConnectionAgent::serviceAutoconnectChanged(bool on)
                         mobileConnected = true;
                     }
                 }
-                if (!mobileConnected && service->roaming() && askRoaming() && !flightModeSuppression) {
+                if (!mobileConnected && service->roaming() && !flightModeSuppression) {
                     Q_EMIT connectionRequest();
                     return;
                 }
@@ -747,38 +726,31 @@ QString QConnectionAgent::findBestConnectableService()
         if (netman->defaultRoute()->type() == "wifi" && service->type() != "wifi")
             return QString(); // prefer connected wifi
 
-        bool isCellRoaming = false;
-        if (service->type() == "cellular" && service->roaming() && !service->connected()) {
-
-            isCellRoaming = askForRoaming;
-
-            QOfonoManager oManager;
-            if (!oManager.available()) {
-                qDebug() << "ofono not available.";
-            }
-            if (oManager.modems().count() < 1)
-                return QString();
-
-            QOfonoConnectionManager oConnManager;
-            oConnManager.setModemPath(oManager.modems().at(0));
-
-            if (oConnManager.roamingAllowed()) {
-                if (askRoaming()) {
-                    // ask user
-                    if (!flightModeSuppression) {
-                        Q_EMIT connectionRequest();
-                    }
-                    return QString();
-                }
-            }
-            //roaming and user doesnt want connection while roaming
-            qDebug() << "roaming not allowed";
-            return QString();
-        }
+//        if (service->type() == "cellular" && service->roaming() && !service->connected()) {
+//            QOfonoManager oManager;
+//            if (!oManager.available()) {
+//                qDebug() << "ofono not available.";
+//            }
+//            if (oManager.modems().count() < 1)
+//                return QString();
+//            QOfonoConnectionManager oConnManager;
+//            oConnManager.setModemPath(oManager.modems().at(0));
+//            if (oConnManager.roamingAllowed()) {
+//                if (askRoaming()) {
+//                    // ask user
+//                    if (!flightModeSuppression) {
+//                        Q_EMIT connectionRequest();
+//                    }
+//                    return QString();
+//                }
+//            }
+//            //roaming and user doesnt want connection while roaming
+//            qDebug() << "roaming not allowed";
+//            return QString();
+//        }
 
         if (isBestService(service)
-                && service->favorite()
-                && !isCellRoaming) {
+                && service->favorite()) {
             qDebug() << path;
             return path;
         }
