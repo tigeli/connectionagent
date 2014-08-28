@@ -629,11 +629,11 @@ void QConnectionAgent::serviceAutoconnectChanged(bool on)
 
         qDebug() << "find best service here";
         QString selectedServicePath = findBestConnectableService();
-//        if (!selectedServicePath.isEmpty()) {
-//            qDebug() << "<<<<<<<<<<< requestConnect() >>>>>>>>>>>>";
+        if (!selectedServicePath.isEmpty()) {
+            qDebug() << "<<<<<<<<<<< requestConnect() >>>>>>>>>>>>";
 
-//            servicesMap.value(selectedServicePath)->requestConnect();
-//        }
+            servicesMap.value(selectedServicePath)->requestConnect();
+        }
     } else {
         if (!isStateOnline(service->state())) {
             if (service->type() == "cellular") {
